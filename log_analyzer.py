@@ -65,23 +65,19 @@ def main():
                         grep_data[request].append(rtime)
                         grep_data[request].append(rtime)
 
-    #result_data = sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]
     result_data = list()
-    for k,v in  sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]:
-        result_data.append({'url':k, 'count':v[0], 'count_perc':v[0]//total_req, 'time_avg':v[1]//v[0], 'time_max':v[3], 'time_med':(v[3]-v[2])/2})
-    print result_data
-
-
-
-
-
-
-
-
-
-
-
-
+    for k,v in sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]:
+        tmpdir = {'url':k }
+        tmpdir['count'] = v[0]
+        tmpdir['count_perc'] = v[0]/total_req
+        tmpdir['time_avg'] = v[1]/v[0]
+        tmpdir['time_max'] = v[3]
+        tmpdir['time_med'] = (v[3]-v[2])/2
+        tmpdir['time_perc'] = v[1]/total_time
+        tmpdir['time_sum'] = v[1]
+        result_data.append(tmpdir)
+    print result_data[0:1]
+    #http://jinja.pocoo.org/docs/dev/templates/#
 
 
 if __name__ == "__main__":
