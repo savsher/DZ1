@@ -5,7 +5,7 @@ import fnmatch
 import gzip
 import re
 import json
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 # log_format ui_short '$remote_addr $remote_user $http_x_real_ip [$time_local] "$request" '
 #                     '$status $body_bytes_sent "$http_referer" '
@@ -22,16 +22,12 @@ def main():
     # initial variables
     mtime = 0
     xfile = None
-    log_data = list()
-    log_data.append({'url': 'test1', 'count': 100, 'time_sum': 99})
-    log_data.append({'url': 'test2', 'count': 700, 'time_sum': 39})
+    # dict( url:[count, time_sum, time_min, time_max])
     grep_data = defaultdict(list)
+    # summary_requests
     total_req = 0
+    # summary_time
     total_time = 0
-    COUNT = slice(0,0)
-    TIME = slice(1,1)
-    MIN = slice(2,2)
-    MAX = slice(3,3)
 
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
@@ -55,6 +51,7 @@ def main():
                     total_req += 1
                     total_time += rtime
                     request = request.group().split()[1]
+
                     if request in grep_data.keys():
                         grep_data[request][0] += 1
                         grep_data[request][1] += rtime
@@ -67,9 +64,21 @@ def main():
                         grep_data[request].append(rtime)
                         grep_data[request].append(rtime)
                         grep_data[request].append(rtime)
-                        
-        for i in log_data:
-            print(json.dumps(i))
+
+    #result_data = sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]
+    result_data = list()
+    for k,v in  sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]:
+        result_data.append({'url':k, 'count':v[0], 'count_perc':v[0]//total_req, 'time_avg':v[1]//v[0], 'time_max':v[3], 'time_med':(v[3]-v[2])/2})
+    print result_data
+
+
+
+
+
+
+
+
+
 
 
 
