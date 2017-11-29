@@ -7,11 +7,15 @@ import re
 from collections import defaultdict
 import string
 import time
+import sys
 
 # log_format ui_short '$remote_addr $remote_user $http_x_real_ip [$time_local] "$request" '
 #                     '$status $body_bytes_sent "$http_referer" '
 #                     '"$http_user_agent" "$http_x_forwarded_for" "$http_X_REQUEST_ID" "$http_X_RB_USER" '
 #                     '$request_time';
+
+
+
 
 config = {
     "REPORT_SIZE": 1000,
@@ -25,6 +29,11 @@ def main():
     xfile = None
     # save file-modification in str format
     file_time = ''
+
+    def grep_cmdline():
+        for i in sys.argv[1:]:
+            print i
+
 
     def grep_file(filed):
         # dict( url:[count, time_sum, time_min, time_max])
@@ -53,6 +62,8 @@ def main():
                     grep_data[request].append(rtime)
                     grep_data[request].append(rtime)
         return grep_data
+
+    grep_cmdline()
 
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
@@ -100,7 +111,7 @@ def main():
                         fwrite.write(string.Template(line).substitute(table_json=result_data))
                     else:
                         fwrite.write(line)
-    print(result_data[0:2])
+    #print(result_data[0:2])
 
 if __name__ == "__main__":
     main()
