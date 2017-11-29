@@ -4,7 +4,6 @@ import os
 import fnmatch
 import gzip
 import re
-import json
 from collections import defaultdict
 import string
 import time
@@ -20,44 +19,40 @@ config = {
     "LOG_DIR": "./log"
 }
 
-def grep_line():
-    pass
-
 def main():
     # initial variables
     mtime = 0
     xfile = None
-    # dict( url:[count, time_sum, time_min, time_max])
-    grep_data = defaultdict(list)
-    # summary_requests
-    total_req = 0
-    # summary_time
-    total_time = 0
     # save file-modification in str format
     file_time = ''
 
-    def grep_line(line):
-        SEARCH_TMPL =  'GET .* HTTP'
-        request = re.search(SEARCH_TMPL, line)
-        if request is not None:
-            rtime = float(line.split()[-1])
-            total_req += 1
-            total_time += rtime
-            request = request.group().split()[1]
-
-            if request in grep_data.keys():
-                grep_data[request][0] += 1
-                grep_data[request][1] += rtime
-                if grep_data[request][2] > rtime:
-                    grep_data[request][2] = rtime
-                if grep_data[request][3] < rtime:
-                    grep_data[request][3] = rtime
-            else:
-                grep_data[request].append(1)
-                grep_data[request].append(rtime)
-                grep_data[request].append(rtime)
-                grep_data[request].append(rtime)
-
+    def grep_file(filed):
+        # dict( url:[count, time_sum, time_min, time_max])
+        grep_data = defaultdict(list)
+        COUNT = 0
+        TIME_SUM = 1
+        TIME_MIN = 2
+        TIME_MAX = 3
+        # save file-modification in str format
+        search_tmpl = re.compile('[GET|POST] .* HTTP')
+        for line in filed:
+            request = search_tmpl.search(line)
+            if request is not None:
+                rtime = float(line.split()[-1])
+                request = request.group().split()[1]
+                if request in grep_data.keys():
+                    grep_data[request][COUNT] += 1
+                    grep_data[request][TIME_SUM] += rtime
+                    if grep_data[request][TIME_MIN] > rtime:
+                        grep_data[request][TIME_MIN] = rtime
+                    if grep_data[request][TIME_MAX] < rtime:
+                        grep_data[request][TIME_MAX] = rtime
+                else:
+                    grep_data[request].append(1)
+                    grep_data[request].append(rtime)
+                    grep_data[request].append(rtime)
+                    grep_data[request].append(rtime)
+        return grep_data
 
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
@@ -71,36 +66,41 @@ def main():
     file_time = time.strftime('%Y.%m.%d', time.localtime(mtime))
 
     if xfile.endswith('.gz'):
-        with gzip.open(xfile, 'rt') as f:
-            for line in f:
-                grep_line(line)
+        with gzip.open(xfile, 'rb') as f:
+            grep_data = grep_file(f)
     else:
         with open(xfile, 'rt') as f:
-            for line in f:
-                grep_line(line)
+            grep_data = grep_file(f)
 
-    result_data = list()
-    for k,v in sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]:
-        tmpdir = {'url':k }
-        tmpdir['count'] = v[0]
-        tmpdir['count_perc'] = round(float(v[0]/total_req), 9)
-        tmpdir['time_avg'] = round(float(v[1]/v[0]), 7)
-        tmpdir['time_max'] = v[3]
-        tmpdir['time_med'] = round(float((v[3]-v[2])/2), 7)
-        tmpdir['time_perc'] = round(float(v[1]/total_time), 7)
-        tmpdir['time_sum'] = round(v[1], 7)
-        result_data.append(tmpdir)
-
-    #  Rendering template
-    with open(os.path.join(config['REPORT_DIR'], 'report.html'), 'rt') as fread:
-        with open(os.path.join(config['REPORT_DIR'], 'report-' + file_time + '.html'), 'wt') as fwrite:
-
-            for line in fread:
-                test = re.search('var table = \$table_json', line)
-                if test is not None:
-                    fwrite.write(string.Template(line).substitute(table_json=result_data))
-                else:
-                    fwrite.write(line)
+    # Create templete for html file
+    if grep_data:
+        precise = 7
+        result_data = list()
+        total_req = sum([grep_data[x][0] for x in grep_data])
+        #print(total_req)
+        total_time = sum([grep_data[x][1] for x in grep_data])
+        #print(total_time)
+        result_data = list()
+        for k,v in sorted(grep_data.items(), key=lambda x: x[1][1], reverse=True)[0:config["REPORT_SIZE"]]:
+            tmpdir = {'url':k }
+            tmpdir['count'] = v[0]
+            tmpdir['count_perc'] = round(float(v[0])/total_req, precise)
+            tmpdir['time_avg'] = round(float(v[1])/v[0], precise)
+            tmpdir['time_max'] = round(v[3], precise)
+            tmpdir['time_med'] = round(float(v[3]-v[2])/2, precise)
+            tmpdir['time_perc'] = round(float(v[1])/total_time, precise)
+            tmpdir['time_sum'] = round(v[1], precise)
+            result_data.append(tmpdir)
+        #  Rendering template
+        with open(os.path.join(config['REPORT_DIR'], 'report.html'), 'rt') as fread:
+            with open(os.path.join(config['REPORT_DIR'], 'report-' + file_time + '.html'), 'wt') as fwrite:
+                for line in fread:
+                    test = re.search('var table = \$table_json', line)
+                    if test is not None:
+                        fwrite.write(string.Template(line).substitute(table_json=result_data))
+                    else:
+                        fwrite.write(line)
+    print(result_data[0:2])
 
 if __name__ == "__main__":
     main()
