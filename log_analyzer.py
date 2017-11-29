@@ -8,6 +8,7 @@ from collections import defaultdict
 import string
 import time
 import sys
+import argparse
 
 # log_format ui_short '$remote_addr $remote_user $http_x_real_ip [$time_local] "$request" '
 #                     '$status $body_bytes_sent "$http_referer" '
@@ -31,8 +32,11 @@ def main():
     file_time = ''
 
     def grep_cmdline():
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--config', action='test')
         for i in sys.argv[1:]:
             print i
+
 
 
     def grep_file(filed):
