@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import os.path
 import fnmatch
 import gzip
 import re
 from collections import defaultdict
 import string
 import time
-import sys
+import argparse
+import configparser
 
 # log_format ui_short '$remote_addr $remote_user $http_x_real_ip [$time_local] "$request" '
 #                     '$status $body_bytes_sent "$http_referer" '
 #                     '"$http_user_agent" "$http_x_forwarded_for" "$http_X_REQUEST_ID" "$http_X_RB_USER" '
 #                     '$request_time';
-
-
-
 
 config = {
     "REPORT_SIZE": 1000,
@@ -31,9 +30,22 @@ def main():
     file_time = ''
 
     def grep_cmdline():
-        for i in sys.argv[1:]:
-            print i
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--config', dest='config', action='store', help='Config File')
+        args = parser.parse_args()
+        # check file exists
+        if args.config is not None:
+            if os.path.isfile(args.config):
+                return args.config
+        return '/usr/local/etc/log_analyzer.conf'
 
+    def read_config(file):
+        read_conf = configparser.ConfigParser()
+        read_conf.read(file)
+        tmp = config.get('', 'REPORT_SIZE')
+        #config['REPORT_DIR'] = config.get('GLOBAL', 'REPORT_DIR')
+        #config['LOG_DIR'] = config.get('GLOBAL', 'LOG_DIR')
+        print tmp
 
     def grep_file(filed):
         # dict( url:[count, time_sum, time_min, time_max])
@@ -63,7 +75,9 @@ def main():
                     grep_data[request].append(rtime)
         return grep_data
 
-    grep_cmdline()
+    config_file = grep_cmdline()
+
+    read_config(config_file)
 
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
