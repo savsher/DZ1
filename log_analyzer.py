@@ -35,18 +35,31 @@ def main():
         parser.add_argument('--config', dest='config', action='store', help='Config File')
         args = parser.parse_args()
         # check file exists
+        default_config_file = '/usr/local/etc/log_analyzer.conf'
         if args.config is not None:
             if os.path.isfile(args.config):
                 return args.config
-        return '/usr/local/etc/log_analyzer.conf'
+        else:
+            if os.path.isfile(default_config_file):
+                return  default_config_file
+        return None
 
     def read_config(file):
-        read_conf = configparser.ConfigParser()
-        read_conf.read(file)
-        tmp = config.get('', 'REPORT_SIZE')
-        #config['REPORT_DIR'] = config.get('GLOBAL', 'REPORT_DIR')
-        #config['LOG_DIR'] = config.get('GLOBAL', 'LOG_DIR')
-        print tmp
+        if file is not None:
+            read_conf = configparser.ConfigParser()
+            try:
+                read_conf.read(file)
+                tmp1 = config.getint('', 'REPORT_SIZE')
+                tmp2 = config.get('', '')
+                tmp3 = config.get('', '')
+            except Exception, err:
+                print err
+                # write to log
+            else:
+                config["REPORT_SIZE"] = tmp1
+                config['REPORT_DIR'] = tmp2
+                config['LOG_DIR'] = tmp3
+
 
     def grep_file(filed):
         # dict( url:[count, time_sum, time_min, time_max])
