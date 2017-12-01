@@ -8,13 +8,9 @@ import re
 from collections import defaultdict
 import string
 import time
-<<<<<<< HEAD
 import argparse
 import configparser
-=======
 import sys
-import argparse
->>>>>>> f3d3a243130a2611fef57d4e1209a2d997dd5bd7
 
 # log_format ui_short '$remote_addr $remote_user $http_x_real_ip [$time_local] "$request" '
 #                     '$status $body_bytes_sent "$http_referer" '
@@ -36,7 +32,6 @@ def main():
 
     def grep_cmdline():
         parser = argparse.ArgumentParser()
-<<<<<<< HEAD
         parser.add_argument('--config', dest='config', action='store', help='Config File')
         args = parser.parse_args()
         # check file exists
@@ -52,13 +47,6 @@ def main():
         #config['REPORT_DIR'] = config.get('GLOBAL', 'REPORT_DIR')
         #config['LOG_DIR'] = config.get('GLOBAL', 'LOG_DIR')
         print tmp
-=======
-        parser.add_argument('--config', action='test')
-        for i in sys.argv[1:]:
-            print i
-
->>>>>>> f3d3a243130a2611fef57d4e1209a2d997dd5bd7
-
 
     def grep_file(filed):
         # dict( url:[count, time_sum, time_min, time_max])
