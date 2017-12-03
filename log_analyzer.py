@@ -63,17 +63,20 @@ def read_config(file):
 
 def check_run():
     http_log_time = 19700101
+    http_log_file = None
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
             x = int(name.split['.'][1].split('-')[1])
             if http_log_time < x:
-                http_log_file =
-
+                http_log_time = x
+                http_log_file = name
+    if http_log_file is not None:
+        report_file = 'report-' + time.strftime('%Y.%m.%d', time.strptime(str(http_log_time), '%Y%m%d')) + '.html'
+        #check
+        if os.path.isfile(os.path.join(config['REPORT_DIR'], report_file)):
             if mtime < os.stat(os.path.join(path, name)).st_mtime:
                 xfile = os.path.join(path, name)
                 mtime = os.stat(os.path.join(path, name )).st_mtime
-
-    pass
 
 def grep_file(filed):
     # dict( url:[count, time_sum, time_min, time_max])
