@@ -20,8 +20,92 @@ import sys
 config = {
     "REPORT_SIZE": 1000,
     "REPORT_DIR": "./reports",
-    "LOG_DIR": "./log"
+    "LOG_DIR": "./log",
+    "TS_FILE": "/var/tmp/log_analyzer.ts"
+    #"LOG_FILE": "/usr/loca/etc/log_analyzer.conf"
 }
+
+
+def grep_cmdline():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', dest='config', action='store', help='Config File')
+    args = parser.parse_args()
+    # check file exists
+    default_config_file = '/usr/local/etc/log_analyzer.conf'
+    if args.config is not None:
+        if os.path.isfile(args.config):
+            return args.config
+    else:
+        if os.path.isfile(default_config_file):
+            return default_config_file
+    return None
+
+def read_config(file):
+    if file is not None:
+        read_conf = configparser.ConfigParser()
+        try:
+            read_conf.read(file)
+            report_size = read_conf.getint('GLOBAL', 'REPORT_SIZE')
+            report_dir = read_conf.get('GLOBAL', 'REPORT_DIR')
+            log_dir = read_conf.get('GLOBAL', 'LOG_DIR')
+            ts_file = read_conf.get('GLOBAL', 'TS_FILE')
+        except Exception as err:
+            print err
+        else:
+            config["REPORT_SIZE"] = report_size
+            config['REPORT_DIR'] = report_dir
+            config['LOG_DIR'] = log_dir
+            config['TS_FILE']  = ts_file
+            try:
+                log_file = read_conf.get('GLOBAL', 'LOG_FILE')
+            except Exception as err:
+                print err
+
+def check_run():
+    http_log_time = 19700101
+    for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
+        for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
+            x = int(name.split['.'][1].split('-')[1])
+            if http_log_time < x:
+                http_log_file =
+
+            if mtime < os.stat(os.path.join(path, name)).st_mtime:
+                xfile = os.path.join(path, name)
+                mtime = os.stat(os.path.join(path, name )).st_mtime
+
+    pass
+
+def grep_file(filed):
+    # dict( url:[count, time_sum, time_min, time_max])
+    grep_data = defaultdict(list)
+    COUNT = 0
+    TIME_SUM = 1
+    TIME_MIN = 2
+    TIME_MAX = 3
+    # save file-modification in str format
+    search_tmpl = re.compile('[GET|POST] .* HTTP')
+    for line in filed:
+        request = search_tmpl.search(line)
+        if request is not None:
+            rtime = float(line.split()[-1])
+            request = request.group().split()[1]
+            if request in grep_data.keys():
+                grep_data[request][COUNT] += 1
+                grep_data[request][TIME_SUM] += rtime
+                if grep_data[request][TIME_MIN] > rtime:
+                    grep_data[request][TIME_MIN] = rtime
+                if grep_data[request][TIME_MAX] < rtime:
+                    grep_data[request][TIME_MAX] = rtime
+            else:
+                grep_data[request].append(1)
+                grep_data[request].append(rtime)
+                grep_data[request].append(rtime)
+                grep_data[request].append(rtime)
+    return grep_data
+
+def crete_report():
+    pass
+
 
 def main():
     # initial variables
@@ -30,68 +114,14 @@ def main():
     # save file-modification in str format
     file_time = ''
 
-    def grep_cmdline():
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config', dest='config', action='store', help='Config File')
-        args = parser.parse_args()
-        # check file exists
-        default_config_file = '/usr/local/etc/log_analyzer.conf'
-        if args.config is not None:
-            if os.path.isfile(args.config):
-                return args.config
-        else:
-            if os.path.isfile(default_config_file):
-                return  default_config_file
-        return None
-
-    def read_config(file):
-        if file is not None:
-            read_conf = configparser.ConfigParser()
-            try:
-                read_conf.read(file)
-                tmp1 = config.getint('', 'REPORT_SIZE')
-                tmp2 = config.get('', '')
-                tmp3 = config.get('', '')
-            except Exception, err:
-                print err
-                # write to log
-            else:
-                config["REPORT_SIZE"] = tmp1
-                config['REPORT_DIR'] = tmp2
-                config['LOG_DIR'] = tmp3
-
-
-    def grep_file(filed):
-        # dict( url:[count, time_sum, time_min, time_max])
-        grep_data = defaultdict(list)
-        COUNT = 0
-        TIME_SUM = 1
-        TIME_MIN = 2
-        TIME_MAX = 3
-        # save file-modification in str format
-        search_tmpl = re.compile('[GET|POST] .* HTTP')
-        for line in filed:
-            request = search_tmpl.search(line)
-            if request is not None:
-                rtime = float(line.split()[-1])
-                request = request.group().split()[1]
-                if request in grep_data.keys():
-                    grep_data[request][COUNT] += 1
-                    grep_data[request][TIME_SUM] += rtime
-                    if grep_data[request][TIME_MIN] > rtime:
-                        grep_data[request][TIME_MIN] = rtime
-                    if grep_data[request][TIME_MAX] < rtime:
-                        grep_data[request][TIME_MAX] = rtime
-                else:
-                    grep_data[request].append(1)
-                    grep_data[request].append(rtime)
-                    grep_data[request].append(rtime)
-                    grep_data[request].append(rtime)
-        return grep_data
-
     config_file = grep_cmdline()
-
     read_config(config_file)
+
+
+
+    files = check_run()
+
+
 
     for path, dirlist, filelist in os.walk(config["LOG_DIR"]):
         for name in fnmatch.filter(filelist, "nginx-access-ui.log-*"):
