@@ -103,10 +103,6 @@ def grep_file(filed):
     """ """
     # dict( url:[count, time_sum, time_min, time_max])
     grep_data = defaultdict(list)
-    COUNT = 0
-    TIME_SUM = 1
-    TIME_MIN = 2
-    TIME_MAX = 3
     # save file-modification in str format
     search_tmpl = re.compile('[GET|POST] .* HTTP')
     try:
@@ -116,14 +112,14 @@ def grep_file(filed):
                 rtime = float(line.split()[-1])
                 request = request.group().split()[1]
                 if request in grep_data.keys():
-                    grep_data[request][COUNT] += 1
-                    grep_data[request][TIME_SUM] += rtime
-                    if grep_data[request][TIME_MIN] > rtime:
-                        grep_data[request][TIME_MIN] = rtime
-                    if grep_data[request][TIME_MAX] < rtime:
-                        grep_data[request][TIME_MAX] = rtime
+                    grep_data[request][0] += 1
+                    grep_data[request][1] += rtime
+                    if grep_data[request][2] > rtime:
+                        grep_data[request][2] = rtime
+                    if grep_data[request][3] < rtime:
+                        grep_data[request][3] = rtime
                 else:
-                    grep_data[request].append(TIME_SUM)
+                    grep_data[request].append(1)
                     grep_data[request].append(rtime)
                     grep_data[request].append(rtime)
                     grep_data[request].append(rtime)
@@ -179,14 +175,13 @@ def main():
             level=logging.INFO,
             format='[%(asctime)s] %(levelname).1s %(message)s',
             datefmt='%Y.%m.%d %H:%M:%S',
-            stream=config['LOG_FILE']
+            filename=config['LOG_FILE']
         )
     else:
         logging.basicConfig(
             level=logging.INFO,
             format='[%(asctime)s] %(levelname).1s %(message)s',
-            datefmt='%Y.%m.%d %H:%M:%S',
-            stream=sys.stdout
+            datefmt='%Y.%m.%d %H:%M:%S'
         )
 
     logging.info('Start script: %s', sys.argv[0])
