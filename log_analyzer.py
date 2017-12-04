@@ -152,15 +152,22 @@ def create_report(grep_data, file):
         tmpdir['time_sum'] = round(v[1], precise)
         result_data.append(tmpdir)
     # Rendering template
+    report_tmpl = os.path.join(config['REPORT_DIR'], 'report.html')
+    if not os.path.isfile(report_tmpl):
+        logging.error('No template file: %', report_tmpl)
+        sys.exit(1)
     with open(os.path.join(config['REPORT_DIR'], 'report.html'), 'rt') as fread:
         with open(os.path.join(file), 'wt') as fwrite:
-            for line in fread:
-                test = re.search('var table = \$table_json', line)
-                if test is not None:
-                    fwrite.write(string.Template(line).substitute(table_json=result_data))
-                else:
-                    fwrite.write(line)
-
+            try:
+                for line in fread:
+                    test = re.search('var table = \$table_json', line)
+                    if test is not None:
+                        fwrite.write(string.Template(line).substitute(table_json=result_data))
+                    else:
+                        fwrite.write(line)
+            except IOError as err:
+                logging.error(err)
+                sys.exit(1)
 
 def main():
     """"""
@@ -196,9 +203,14 @@ def main():
     logging.info('Create report file %s', files['report'])
     if grep_data:
         create_report(grep_data, files['report'])
-        with open(config['TS_FILE'], 'wt') as f:
-            f.write(str(time.time()))
-        logging.info('Stop script success ...: %s', sys.argv[0])
+        try:
+            with open(config['TS_FILE'], 'wt') as f:
+                f.write(str(time.time()))
+        except EnvironmentError as err:
+            logging.exception(err)
+            sys.exit(1)
+        else:
+            logging.info('Stop script success ...: %s', sys.argv[0])
     else:
         logging.info('Stop script ...: %s', sys.argv[0])
 
