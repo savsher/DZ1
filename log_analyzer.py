@@ -26,6 +26,7 @@ config = {
     #"LOG_FILE": "/usr/loca/etc/log_analyzer.conf"
 }
 
+
 def grep_cmdline():
     """ """
     parser = argparse.ArgumentParser()
@@ -40,6 +41,7 @@ def grep_cmdline():
         if os.path.isfile(default_config_file):
             return default_config_file
     return None
+
 
 def read_config(file):
     """ """
@@ -64,6 +66,7 @@ def read_config(file):
                 print err
             else:
                 config['LOG_FILE'] = log_file
+
 
 def check_run():
     """ """
@@ -93,11 +96,14 @@ def check_run():
             http_log_time = os.stat(http_log_file).st_mtime
             if report_file_time > http_log_time:
                 logging.info('Report already exists : %s ', report_file)
+                logging.info('Script stop %s', sys.argv[0])
                 sys.exit(0)
         return {'log':http_log_file, 'report':report_file}
     else:
         logging.info('No log file to grep ...')
+        logging.info('Script stop %s', sys.argv[0])
         sys.exit(0)
+
 
 def grep_file(filed):
     """ """
@@ -129,6 +135,7 @@ def grep_file(filed):
     else:
         return grep_data
 
+
 def create_report(grep_data, file):
     precise = 7
     result_data = list()
@@ -149,21 +156,22 @@ def create_report(grep_data, file):
         result_data.append(tmpdir)
     # Rendering template
     report_tmpl = os.path.join(config['REPORT_DIR'], 'report.html')
-    if not os.path.isfile(report_tmpl):
-        logging.error('No template file: %', report_tmpl)
-        sys.exit(1)
-    with open(os.path.join(config['REPORT_DIR'], 'report.html'), 'rt') as fread:
-        with open(os.path.join(file), 'wt') as fwrite:
-            try:
+    #if not os.path.isfile(report_tmpl):
+    #    logging.error('No template file: %', report_tmpl)
+    #    sys.exit(1)
+    try:
+        with open(report_tmpl, 'rt') as fread:
+            with open(os.path.join(file), 'wt') as fwrite:
                 for line in fread:
                     test = re.search('var table = \$table_json', line)
                     if test is not None:
                         fwrite.write(string.Template(line).substitute(table_json=result_data))
                     else:
                         fwrite.write(line)
-            except IOError as err:
-                logging.error(err)
-                sys.exit(1)
+    except IOError as err:
+        logging.error(err)
+        sys.exit(1)
+
 
 def main():
     """"""
