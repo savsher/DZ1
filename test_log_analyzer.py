@@ -63,16 +63,11 @@ class TestLogAnalyzer(unittest.TestCase):
         old_val = log_analyzer.config["REPORT_DIR"]
         log_analyzer.config["REPORT_DIR"] = '/var/tmp/tmp/tmp'
         x = defaultdict(list)
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit):
             self.assertRaises(IOError, log_analyzer.create_report(x, '/var/tmp/tmp/tmp.txt'))
-        #with self.assertRaises(Exception):
-        #    log_analyzer.create_report(x, '/var/tmp/tmp1.txt')
         log_analyzer.config["REPORT_DIR"] = old_val
 
 
     def tearDown(self):
         os.remove(self.tmp_conf_file)
         os.remove(self.tmp_log_file)
-
-
-
