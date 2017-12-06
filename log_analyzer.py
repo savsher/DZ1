@@ -23,7 +23,7 @@ config = {
     "REPORT_DIR": "./reports",
     "LOG_DIR": "./log",
     "TS_FILE": "/var/tmp/log_analyzer.ts"
-    #"LOG_FILE": "/usr/loca/etc/log_analyzer.conf"
+    # "LOG_FILE": "log_analyzer.log"
 }
 
 
@@ -40,32 +40,33 @@ def grep_cmdline():
     else:
         if os.path.isfile(default_config_file):
             return default_config_file
-    return None
+    print 'Cant start without config file ...'
+    sys.exit(1)
 
 
 def read_config(file):
     """ """
-    if file is not None:
-        read_conf = configparser.ConfigParser()
+    read_conf = configparser.ConfigParser()
+    read_conf.read(file)
+    try:
+        report_size = read_conf.getint('GLOBAL', 'REPORT_SIZE')
+    except Exception as err
+        report_dir = read_conf.get('GLOBAL', 'REPORT_DIR')
+        log_dir = read_conf.get('GLOBAL', 'LOG_DIR')
+        ts_file = read_conf.get('GLOBAL', 'TS_FILE')
+    except Exception as err:
+        print err
+    else:
+        config["REPORT_SIZE"] = report_size
+        config['REPORT_DIR'] = report_dir
+        config['LOG_DIR'] = log_dir
+        config['TS_FILE'] = ts_file
         try:
-            read_conf.read(file)
-            report_size = read_conf.getint('GLOBAL', 'REPORT_SIZE')
-            report_dir = read_conf.get('GLOBAL', 'REPORT_DIR')
-            log_dir = read_conf.get('GLOBAL', 'LOG_DIR')
-            ts_file = read_conf.get('GLOBAL', 'TS_FILE')
+            log_file = read_conf.get('GLOBAL', 'LOG_FILE')
         except Exception as err:
             print err
         else:
-            config["REPORT_SIZE"] = report_size
-            config['REPORT_DIR'] = report_dir
-            config['LOG_DIR'] = log_dir
-            config['TS_FILE']  = ts_file
-            try:
-                log_file = read_conf.get('GLOBAL', 'LOG_FILE')
-            except Exception as err:
-                print err
-            else:
-                config['LOG_FILE'] = log_file
+            config['LOG_FILE'] = log_file
 
 
 def check_run():
@@ -90,7 +91,7 @@ def check_run():
         report_file = os.path.join(
             config['REPORT_DIR'],
             'report-' + time.strftime('%Y.%m.%d', time.strptime(str(http_log_time), '%Y%m%d')) + '.html')
-        #check
+        # check
         if os.path.isfile(report_file):
             report_file_time = os.stat(report_file).st_mtime
             http_log_time = os.stat(http_log_file).st_mtime
@@ -98,7 +99,7 @@ def check_run():
                 logging.info('Report already exists : %s ', report_file)
                 logging.info('Script stop %s', sys.argv[0])
                 sys.exit(0)
-        return {'log':http_log_file, 'report':report_file}
+        return {'log': http_log_file, 'report': report_file}
     else:
         logging.info('No log file to grep ...')
         logging.info('Script stop %s', sys.argv[0])
@@ -156,9 +157,6 @@ def create_report(grep_data, file):
         result_data.append(tmpdir)
     # Rendering template
     report_tmpl = os.path.join(config['REPORT_DIR'], 'report.html')
-    #if not os.path.isfile(report_tmpl):
-    #    logging.error('No template file: %', report_tmpl)
-    #    sys.exit(1)
     try:
         with open(report_tmpl, 'rt') as fread:
             with open(os.path.join(file), 'wt') as fwrite:
@@ -197,7 +195,7 @@ def main():
     logging.info('Grep http log %s', sys.argv[0])
 
     if files['log'].endswith('.gz'):
-        with gzip.open(files['log'],'rb') as f:
+        with gzip.open(files['log'], 'rb') as f:
             grep_data = grep_file(f)
     else:
         with open(files['log'], 'rt') as f:
