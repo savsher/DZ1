@@ -28,12 +28,14 @@ LOG_ANALYZER - парсит логи NGINX сервера на предмет с
 
 
 МОНИТОРИНГ
+
 Скрипт пишет логи в файл, указанный в параметре "LOG_FILE", если не указан, то в консоль вызова. По окончнию (успешному)
 работы, скрипт создает (обновляет) ts-файл по пути "TS_FILE" (например `/var/tmp/log_nalyzer.ts` по умолчанию).
 Внутри файлика находится timestamp времени окончания работы, mtime файлика равен этому таймстемпу
 
 
 ТЕСТИРОВАНИЕ
+
 test_log_analyzer.py :  скрипт тестирования
 python -m unittest -v test_log_analyzer.TestLogAnalyzer.test_check_run :
     тестирует функцию, которая отвечает за повторный запуск log_analyzer.py и в случае, если запуск необходим
@@ -50,4 +52,5 @@ python -m unittest -v test_log_analyzer.TestLogAnalyzer.test_read_config :
     used TestLogAnalyzer.setUp(), TestLogAnalyzer.tearDown()
 
 Author
+
 email@savsher@gmail.com
