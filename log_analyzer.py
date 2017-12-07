@@ -9,7 +9,7 @@ from collections import defaultdict
 import string
 import time
 import argparse
-import configparser
+import ConfigParser
 import sys
 import logging
 
@@ -23,12 +23,14 @@ config = {
     "REPORT_DIR": "./reports",
     "LOG_DIR": "./log",
     "TS_FILE": "/var/tmp/log_analyzer.ts"
-    # "LOG_FILE": "log_analyzer.log"
 }
 
 
 def grep_cmdline():
-    """ """
+    """
+    Fun parce command line
+    :return str(/path_to_config_file) or exit
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', action='store', help='Config File')
     args = parser.parse_args()
@@ -45,32 +47,55 @@ def grep_cmdline():
 
 
 def read_config(file):
-    """ """
-    read_conf = configparser.ConfigParser()
-    read_conf.read(file)
+    """
+    Fun parce config file
+    file : str(/path_to_config)
+    """
+    read_conf = ConfigParser.ConfigParser()
     try:
-        report_size = read_conf.getint('GLOBAL', 'REPORT_SIZE')
-    except Exception as err
-        report_dir = read_conf.get('GLOBAL', 'REPORT_DIR')
-        log_dir = read_conf.get('GLOBAL', 'LOG_DIR')
-        ts_file = read_conf.get('GLOBAL', 'TS_FILE')
-    except Exception as err:
+        read_conf.read(file)
+    except ConfigParser.Error as err:
         print err
+        print('Failed to read config file!!!')
+        sys.exit(1)
     else:
-        config["REPORT_SIZE"] = report_size
-        config['REPORT_DIR'] = report_dir
-        config['LOG_DIR'] = log_dir
-        config['TS_FILE'] = ts_file
+        try:
+            report_size = read_conf.getint('GLOBAL', 'REPORT_SIZE')
+        except ConfigParser.Error as err:
+            pass
+        else:
+            config['REPORT_SIZE'] = report_size
+        try:
+            report_dir = read_conf.get('GLOBAL', 'REPORT_DIR')
+        except ConfigParser.Error as err:
+            pass
+        else:
+            config['REPORT_DIR'] = report_dir.strip()
+        try:
+            log_dir = read_conf.get('GLOBAL', 'LOG_DIR')
+        except ConfigParser.Error as err:
+            pass
+        else:
+            config['LOG_DIR'] = log_dir.strip()
+        try:
+            ts_file = read_conf.get('GLOBAL', 'TS_FILE')
+        except ConfigParser.Error as err:
+            pass
+        else:
+            config['TS_FILE'] = ts_file.strip()
         try:
             log_file = read_conf.get('GLOBAL', 'LOG_FILE')
-        except Exception as err:
-            print err
+        except ConfigParser.Error as err:
+            pass
         else:
-            config['LOG_FILE'] = log_file
+            config['LOG_FILE'] = log_file.strip()
 
 
 def check_run():
-    """ """
+    """
+    Fun test existence of report-YYYY.MM.DD.html and if True
+    continue else exit
+    """
     if not os.path.isdir(config['LOG_DIR']):
         logging.error('Not exists : %s ', config['LOG_DIR'])
         sys.exit(1)
@@ -107,7 +132,11 @@ def check_run():
 
 
 def grep_file(filed):
-    """ """
+    """
+    Fun grep source log and create dic()
+    filed : file descriptor
+    :return dic()
+    """
     # dict( url:[count, time_sum, time_min, time_max])
     grep_data = defaultdict(list)
     # save file-modification in str format
@@ -137,7 +166,12 @@ def grep_file(filed):
         return grep_data
 
 
-def create_report(grep_data, file):
+def create_report(grep_data, reportf):
+    """
+    Fun generate report file : report-YYYY.MM.DD.html
+    grep_data :  dir()
+    reportf : str(report filename)
+     """
     precise = 7
     result_data = list()
     total_req = sum([grep_data[x][0] for x in grep_data])
@@ -159,7 +193,7 @@ def create_report(grep_data, file):
     report_tmpl = os.path.join(config['REPORT_DIR'], 'report.html')
     try:
         with open(report_tmpl, 'rt') as fread:
-            with open(os.path.join(file), 'wt') as fwrite:
+            with open(os.path.join(reportf), 'wt') as fwrite:
                 for line in fread:
                     test = re.search('var table = \$table_json', line)
                     if test is not None:
@@ -172,7 +206,9 @@ def create_report(grep_data, file):
 
 
 def main():
-    """"""
+    """
+
+    """
     config_file = grep_cmdline()
     read_config(config_file)
 

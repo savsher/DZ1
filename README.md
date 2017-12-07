@@ -50,10 +50,3 @@ python -m unittest -v test_log_analyzer.TestLogAnalyzer.test_grep_file :
 python -m unittest -v test_log_analyzer.TestLogAnalyzer.test_read_config :
     тестирует функцию разбирающую initial config и критерием успеха является сравнение значений, заданных и считанных
     used TestLogAnalyzer.setUp(), TestLogAnalyzer.tearDown()
-
-
-
-
-
-
-

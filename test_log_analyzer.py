@@ -7,6 +7,7 @@ import log_analyzer
 import os
 import sys
 import time
+from collections import defaultdict
 
 
 class TestLogAnalyzer(unittest.TestCase):
