@@ -1,5 +1,5 @@
 ## Advanced Python 1117 DZ1(madatory)
-## LOG_ANALYZER - парсит логи NGINX сервера на предмет сбора статистики
+### LOG_ANALYZER - парсит логи NGINX сервера на предмет сбора статистики
 
 Запуск :  _python log_analyzer.py \[--conf file\]_
 
@@ -33,13 +33,13 @@ time_med - медиана $request_time для данного URL'а
 Таблица упорядочена по убыванию _"time_sum"_
 
 
-## МОНИТОРИНГ
+#### МОНИТОРИНГ
 Скрипт пишет логи в файл, указанный в параметре "LOG_FILE", если не указан, то в консоль вызова. По окончнию (успешному)
 работы, скрипт создает (обновляет) ts-файл по пути "TS_FILE" ( _/var/tmp/log_nalyzer.ts_ по умолчанию).
 Внутри файлика находится "timestamp" времени окончания работы, "mtime" файлика равен этому таймстемпу
 
 
-## ТЕСТИРОВАНИЕ
+#### ТЕСТИРОВАНИЕ
 _test_log_analyzer.py_ :  скрипт тестирования
 * _python -m unittest -v test_log_analyzer.TestLogAnalyzer.test_check_run_ : тестирует функцию, 
 которая отвечает за повторный запуск _log_analyzer.py_ и в случае, если запуск необходим
@@ -55,5 +55,5 @@ _test_log_analyzer.py_ :  скрипт тестирования
     тестирует функцию разбирающую initial config и критерием успеха является сравнение
      значений, заданных и считанных, использует TestLogAnalyzer.setUp(), TestLogAnalyzer.tearDown()
 
-## Author
+#### Author
 email : savsher@gmail.com
