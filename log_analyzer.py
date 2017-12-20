@@ -24,7 +24,8 @@ config = {
     "REPORT_SIZE": 1000,
     "REPORT_DIR": "./reports",
     "LOG_DIR": "./log",
-    "TS_FILE": "/var/tmp/log_analyzer.ts"
+    "TS_FILE": "/var/tmp/log_analyzer.ts",
+    "TRIGGER": 0.9
 }
 
 
@@ -34,10 +35,6 @@ def parse_cmdline():
     :return str(/path_to_config_file) or exit
     """
     parser = argparse.ArgumentParser()
-    """
-    5.https: // github.com / savsher / DZ1 / blob / master / log_analyzer.py  
-    # L35 - есть атрибут default
-    """
     parser.add_argument('--config', dest='config', action='store', help='Config File',
                         default='/usr/local/etc/log_analyzer.conf')
     args = parser.parse_args()
@@ -63,26 +60,20 @@ def read_config(file):
         print('Failed to read config file!!!')
         sys.exit(1)
     else:
-        """
-        6. https: // github.com / savsher / DZ1 / blob / master / log_analyzer.py  
-        # L49 - вот это все можно циклом заменить. Или распарсить в словарь и сделать update
-        """
         conf_local = copy.deepcopy(config)
         conf_local.update(dict(read_conf.items('GLOBAL')))
         return conf_local
-"""
-#11. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-#L94 - почему эта функция ищет лог, а потом еще ищет отчет для нее? 
-а если я хочу у вас импортировать одно без другого, то что делать? 
-а если протестировать нужно только определенный функционал?
-"""
-"""
-Вопрос не совсем понятен, особенно последние 2 его части
-Данная функция проверяет, нужно ли повторно запускать тест.
-для этого она должна знать "последний лог файл" и  есть ли "репорт" с такой же датой
-На основании этих данных она либо прерывет работу, либо возвращает название файлов(перечисленных выше)
- необходимых для работы
-"""
+
+
+def time_stamp(path):
+    try:
+        with open(path, 'wt') as f:
+            f.write(str(time.time()))
+    except EnvironmentError as err:
+        logging.exception(err)
+        sys.exit(1)
+
+
 def check_run(conf):
     """
     Fun test existence of report-YYYY.MM.DD.html and if True
@@ -94,26 +85,18 @@ def check_run(conf):
     if not os.path.isfile('report.html'):
         logging.error('Not exists : report.html')
         sys.exit(1)
-    """
-    8. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-    #L102 - ну и что? вы можете сами ее создать
-    """
     if not os.path.isdir(conf['REPORT_DIR']):
         try:
             os.mkdir(conf['REPORT_DIR'])
         except OSError as err:
-            logging.error('Cant create directory: $s', conf['REPORT_DIR'])
-            logging.error(err)
+            logging.exception(err)
             sys.exit(1)
 
     http_log_time = 19700000
     http_log_file = None
     for path, dirlist, filelist in os.walk(conf['LOG_DIR']):
+        print filelist
         for name in fnmatch.filter(filelist, 'nginx-access-ui.log-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*'):
-            """
-            9. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-            #L110 - это упадет на имени "nginx-access-ui.log-" . Не тестировали.
-            """
             x = int(name.split('.')[1].split('-')[1])
             if http_log_time < x:
                 http_log_time = x
@@ -123,21 +106,9 @@ def check_run(conf):
         report_file = os.path.join(conf['REPORT_DIR'],
             'report-' + time.strftime('%Y.%m.%d', time.strptime(str(http_log_time), '%Y%m%d')) + '.html')
         # check
-        """
-        10. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-        #L121 - их надо сверять не по mtime. Есть однозначное соответствие лога и отчета, 
-        если для лога есть отчета - значит все ок, работа сделана.
-        16. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-        #L244 - если отчет уже был посчитан ранее все равно нужно тс-файл обновить.
-        """
         if os.path.isfile(report_file):
             logging.info('Report already exists : %s ', report_file)
-            try:
-                with open(conf['TS_FILE'], 'wt') as f:
-                    f.write(str(time.time()))
-            except EnvironmentError as err:
-                logging.exception(err)
-                sys.exit(1)
+            time_stamp(conf['TS_FILE'])
             logging.info('Script stop %s', sys.argv[0])
             sys.exit(0)
         return {'log': http_log_file, 'report': report_file}
@@ -147,7 +118,7 @@ def check_run(conf):
         sys.exit(0)
 
 
-def grep_file(filed):
+def grep_file(filed, trigger):
     """
     Fun grep source log and create dic()
     filed : file descriptor
@@ -157,19 +128,8 @@ def grep_file(filed):
     grep_data = defaultdict(list)
     # save file-modification in str format
     search_tmpl = re.compile('[GET|POST] .* HTTP')
-    """
-    # 13. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-    #L134 - (1) давайте эта функция будет возвращать генератор (2) если не получилось распарсить, например, 90% строк,
-     то это беда. Надо задаться порогом (относительным) ошибок парсинга и если он превышен - писать в лог и выходить
-    """
-    """
-    (1) пункт не понял зачем
-    (2) реализована проверка корректности парсинга, но сделано это относительно текущей строки файла, а не всего файла
-    проверка начинается после набра некоторой статистики ( begin_from )
-    """
     pattern_lines = 0
-    trigger = 0.90
-    begin_from = 1000
+    trigger = trigger
     try:
         for total_lines, line in enumerate(filed):
             request = search_tmpl.search(line)
@@ -189,7 +149,7 @@ def grep_file(filed):
                     grep_data[request].append(rtime)
                     grep_data[request].append(rtime)
                     grep_data[request].append(rtime)
-            if total_lines > begin_from and float(total_lines - pattern_lines)/total_lines > trigger:
+            if float(total_lines + 1 - pattern_lines)/(total_lines + 1) > trigger:
                 logging.exception('Exceeded trashhold "BAD LINKS" : %s', trigger)
                 grep_data.clear()
                 break
@@ -209,11 +169,6 @@ def create_report(grep_data, reportf, conf):
      """
     precise = 7
     result_data = list()
-    """
-    14. https: // github.com / savsher / DZ1 / blob / master / log_analyzer.py  
-    # L177 - давайте сократим количество проходов по grep_data до минимума, 
-    щас многовато как-то
-    """
     total_req = 0
     total_time = 0
     for x in grep_data:
@@ -231,10 +186,6 @@ def create_report(grep_data, reportf, conf):
         tmpdir['time_sum'] = round(v[1], precise)
         result_data.append(tmpdir)
     # Rendering template
-    """
-    15. https: // github.com / savsher / DZ1 / blob / master / log_analyzer.py  
-    # L196 - сделайте read(),   safe_substitute и все, не надо усложнять так.
-    """
     try:
         with open('report.html', 'rt') as fread:
             with open(reportf, 'wt') as fwrite:
@@ -247,48 +198,32 @@ def create_report(grep_data, reportf, conf):
         sys.exit(1)
 
 
-def main(myvar):
+def main(config_new):
     """"""
 
-    files = check_run(myvar)
+    files = check_run(config_new)
     logging.info('Grep http log %s', sys.argv[0])
 
-    """
-    12. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-    #L233 - это можно без дупликации кода написать
-    """
     if files['log'].endswith('.gz'):
         f = gzip.open(files['log'], 'rb')
     else:
         f = open(files['log'], 'rt')
-    grep_data = grep_file(f)
+    grep_data = grep_file(f, config_new["TRIGGER"])
     f.close()
     if not grep_data:
         logging.error('Script are stopped : %s', sys.argv[0])
         sys.exit(0)
 
     logging.info('Create report file %s', files['report'])
-    create_report(grep_data, files['report'], myvar)
-    try:
-        with open(config['TS_FILE'], 'wt') as f:
-            f.write(str(time.time()))
-    except EnvironmentError as err:
-        logging.exception(err)
-        sys.exit(1)
+    create_report(grep_data, files['report'], config_new)
+    time_stamp(config_new['TS_FILE'])
+
 
 if __name__ == "__main__":
 
     config_file = parse_cmdline()
     config_new = read_config(config_file)
-    """
-    #3. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-    #L215 - filename принимает None
-    """
-    """
-     Не понял смысл, данного коментария
-     если переменная оказалась в словаре , то она уже не может быть None, иначе она не распарсится
-     или имелось ввиду что-то другое
-    """
+
     if 'LOG_FILE' in config_new:
         logging.basicConfig(
             level=logging.INFO,
@@ -304,13 +239,9 @@ if __name__ == "__main__":
         )
 
     logging.info('Start script: %s', sys.argv[0])
-    """
-    2. https://github.com/savsher/DZ1/blob/master/log_analyzer.py
-    #L255 - в случае неожиданной ошибки все упадет, а вы и не узнаете, если в консоль не смотреть постоянно. Добавьте логирование таких ошибок.
-    """
     try:
         main(config_new)
-    except RuntimeError as err:
+    except Exception as err:
         logging.error(err)
     else:
         logging.info('Stop script success ...: %s', sys.argv[0])
