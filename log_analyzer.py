@@ -95,12 +95,12 @@ def check_run(conf):
     http_log_time = 19700000
     http_log_file = None
     for path, dirlist, filelist in os.walk(conf['LOG_DIR']):
-        print filelist
-        for name in fnmatch.filter(filelist, 'nginx-access-ui.log-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*'):
-            x = int(name.split('.')[1].split('-')[1])
-            if http_log_time < x:
-                http_log_time = x
+        for name in filelist:
+            x = re.findall('nginx-access-ui.log-(\d{8})[.gz]?', name)
+            if http_log_time < int(x[0]):
+                http_log_time = int(x[0])
                 http_log_file = name
+        break # 1 - depth
     if http_log_file is not None:
         http_log_file = os.path.join(conf['LOG_DIR'], http_log_file)
         report_file = os.path.join(conf['REPORT_DIR'],
@@ -223,20 +223,11 @@ if __name__ == "__main__":
 
     config_file = parse_cmdline()
     config_new = read_config(config_file)
-
-    if 'LOG_FILE' in config_new:
-        logging.basicConfig(
-            level=logging.INFO,
-            format='[%(asctime)s] %(levelname).1s %(message)s',
-            datefmt='%Y.%m.%d %H:%M:%S',
-            filename=config_new['LOG_FILE']
-        )
-    else:
-        logging.basicConfig(
-            level=logging.INFO,
-            format='[%(asctime)s] %(levelname).1s %(message)s',
-            datefmt='%Y.%m.%d %H:%M:%S'
-        )
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname).1s %(message)s',
+        datefmt='%Y.%m.%d %H:%M:%S',
+        filename=config_new.get('LOG_FILE'))
 
     logging.info('Start script: %s', sys.argv[0])
     try:
